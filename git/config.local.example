@@ -1,0 +1,14 @@
+# マシン固有のgit設定の雛形。
+# install-local.sh が ~/.config/git/config.local が無い場合にこれをコピーする。
+# 既存ファイルは上書きしないので、各マシンで自由に編集してよい。
+
+[user]
+	# 環境ごとに使い分けるメールアドレス
+	# email = you@example.com
+
+[credential]
+	# helper = store
+
+# 特定リポジトリを safe.directory として許可する場合
+# [safe]
+#	directory = /path/to/repo

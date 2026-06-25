@@ -1,0 +1,17 @@
+[user]
+	name = aoba_toshiki
+[core]
+	editor = zed --wait
+[init]
+	defaultBranch = main
+[alias]
+	delete-merged-branch = "!f () { git fetch -p ; git branch --merged | rg -v '(\\*.*|.*(main|release|develop|no_delete).*)' | xargs -r git branch -d; };f"
+	l = log --graph --decorate --pretty=oneline --abbrev-commit -10
+	ll = log --graph --decorate --date=format-local:'%Y/%m/%d %H:%M' --pretty=format:'%x09%Cgreen[%cd]%Cred | %C(cyan)%an%Creset %C(yellow)%h%C(auto)%d%Creset %s' --date-order -10
+	fd = !git branch | fzf | xargs git checkout
+	upd = pull -r origin main
+	s = status -sb
+# マシン固有の設定(user.email / credential / safe.directory 等)はローカルファイルから読む。
+# このファイルは git 管理外 (install-local.sh が雛形から生成)。
+[include]
+	path = ~/.config/git/config.local

@@ -1,0 +1,66 @@
+[
+  {
+    "label": "Git: Branch from $ZED_GIT_SHA_SHORT",
+    "command": "~/.config/zed/scripts/git-branch-from-commit.sh",
+    "args": ["$ZED_GIT_SHA", "$ZED_GIT_SHA_SHORT"],
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Git: Cherry-pick $ZED_GIT_SHA_SHORT (--no-commit)",
+    "command": "git cherry-pick --no-commit $ZED_GIT_SHA",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Git: Revert $ZED_GIT_SHA_SHORT (--no-commit)",
+    "command": "git revert --no-commit $ZED_GIT_SHA",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Git: Rebase onto $ZED_GIT_SHA_SHORT",
+    "command": "git rebase $ZED_GIT_SHA",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Git: Rebase interactive onto $ZED_GIT_SHA_SHORT",
+    "command": "git rebase -i $ZED_GIT_SHA",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Git: Merge $ZED_GIT_SHA_SHORT",
+    "command": "git merge $ZED_GIT_SHA",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Switch to $ZED_GIT_REF",
+    "command": "~/.config/zed/scripts/git-switch-ref.sh",
+    "args": ["$ZED_GIT_REF"],
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Push $ZED_GIT_REF -> origin",
+    "command": "git push origin $ZED_GIT_REF",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Pull origin/$ZED_GIT_REF",
+    "command": "git pull origin $ZED_GIT_REF",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Delete $ZED_GIT_REF (-d)",
+    "command": "git branch -d $ZED_GIT_REF",
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Force delete $ZED_GIT_REF (-D)",
+    "command": "~/.config/zed/scripts/git-force-delete-branch.sh",
+    "args": ["$ZED_GIT_REF"],
+    "tags": ["git-command"]
+  },
+  {
+    "label": "Branch: Rename $ZED_GIT_REF",
+    "command": "~/.config/zed/scripts/git-rename-branch.sh",
+    "args": ["$ZED_GIT_REF"],
+    "tags": ["git-command"]
+  }
+]
