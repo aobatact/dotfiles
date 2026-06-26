@@ -7,3 +7,4 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "${DOTFILES_DIR}/tmux/install.sh"
+bash "${DOTFILES_DIR}/shell/install.sh"

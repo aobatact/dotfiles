@@ -1,0 +1,7 @@
+# shellcheck shell=bash
+# このマシン固有のエイリアス。gitには含めない(雛形からコピーして使う)。
+# shell/install.sh が ~/.config/shell/aliases.local としてこの雛形から生成する。
+#
+# 例:
+# alias work='cd ~/works'
+# alias k='kubectl'
