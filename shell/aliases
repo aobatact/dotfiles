@@ -1,0 +1,28 @@
+# shellcheck shell=bash
+# 共有エイリアス。dotfilesで管理する。
+# Ubuntu標準の ~/.bashrc が ~/.bash_aliases を自動でsourceするため、
+# このファイルを ~/.bash_aliases にリンクするだけで読み込まれる。
+#
+# マシン固有のエイリアスはここには書かず、末尾でsourceする
+# aliases.local (雛形から生成・gitには含めない) に記述する。
+
+# --- git ---
+alias g='git'
+alias gs='git status'
+alias gd='git diff'
+alias gl='git log --oneline --graph --decorate'
+alias gc='git commit'
+alias gco='git checkout'
+alias gb='git branch'
+
+# --- ファイル操作 ---
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# --- マシン固有エイリアスを読み込む(あれば) ---
+_aliases_local="${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliases.local"
+[ -f "$_aliases_local" ] && . "$_aliases_local"
+unset _aliases_local
