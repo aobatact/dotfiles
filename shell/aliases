@@ -24,7 +24,7 @@ alias ...='cd ../..'
 
 # --- devcontainer ---
 function devcu() {
-  devcontainer up --dotfiles-repository git@github.com:aobatact/dotfiles.git $*
+  devcontainer up --dotfiles-repository https://github.com/aobatact/dotfiles.git $*
 }
 function devce() {
   devcontainer exec $*
