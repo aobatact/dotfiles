@@ -1,7 +1,9 @@
 [user]
 	name = aoba_toshiki
 [core]
-	editor = zed --wait
+	# WSL から Windows 版 Zed を使うため、git が渡す Unix パスを
+	# wslpath -w で Windows パスに変換してから開く。
+	# editor = "f() { echo $1; zed --wait \"$(wslpath -w \"$1\")\"; }; f"
 [init]
 	defaultBranch = main
 [alias]
