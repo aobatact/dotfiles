@@ -16,6 +16,9 @@ function devcu() {
   email="$(git config --get user.email 2>/dev/null)"
   [ -n "$email" ] && opts+=(--remote-env "GIT_USER_EMAIL=${email}")
 
+  # コンテナ内の gh を hosts.yml にログインさせたい場合のみ(通常は gh ラッパーで足りる)
+  [ -n "${DOTFILES_GH_LOGIN:-}" ] && opts+=(--remote-env "DOTFILES_GH_LOGIN=1")
+
   token="$(gh auth token 2>/dev/null)"
   if [ -n "$token" ]; then
     secrets="$(mktemp)"

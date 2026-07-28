@@ -53,18 +53,29 @@ VS Code の Dev Containers 拡張と違い、`devcontainer` CLI は認証情報�
 
 | 渡すもの | 渡し方 | 受け取り側の処理 |
 | --- | --- | --- |
-| `GH_TOKEN` (`gh auth token` の値) | `--secrets-file`(一時ファイル・600) | `~/.config/git/{config.auth,credentials}` を生成。gh CLI があれば `gh auth login` も行う |
+| `GH_TOKEN` (`gh auth token` の値) | `--secrets-file`(一時ファイル・600) | `config.auth` を生成し、トークンは credential cache(メモリ)へ登録 |
 | `GIT_USER_EMAIL` (ホストの `user.email`) | `--remote-env` | `config.local` を生成する際に `user.email` として書く |
 
 - トークンは**コマンドライン引数に出さない**ため `--secrets-file` を使う(`--remote-env` だとホストの `ps` に見える)。
-  コンテナの環境変数にも残らず、`~/.config/git/credentials`(600)にだけ保存される。
+- **トークンをディスクに書かない**。`credential.helper cache` に `git credential approve` で流し込むので、
+  トークンは cache デーモンのメモリ上にだけ存在する。デーモンは別セッション(`devce` や tmux)からも
+  同じソケット経由で引ける。保持時間は既定 12 時間(`GIT_CRED_TIMEOUT` 秒で変更可)。
 - `config.auth` は ssh 形式の URL(`git@github.com:...`)を HTTPS へ書き換える `insteadOf` も設定するので、
   ssh リモートのままのリポジトリでもトークン認証で通る。**GitHub 以外(GitLab 等)はカバーしない。**
-- トークンが失効した / `gh` でログインし直した場合は、コンテナを作り直さずに `devcauth` で張り直せる。
+- cache が切れた / トークンを入れ替えた場合は、コンテナを作り直さずに `devcauth` で入れ直せる。
 
 ```sh
-devcauth --workspace-folder .   # コンテナ内で git/install.sh を再実行してトークンを更新
+devcauth --workspace-folder .   # コンテナ内で git/install.sh を再実行してトークンを入れ直す
 ```
+
+### コンテナ内の `gh`
+
+`shell/aliases` が `gh` をラップし、呼び出しのたびに credential cache からトークンを取り出して
+`GH_TOKEN` として渡す。ラッパーはコンテナ側(`config.auth` がある環境)でだけ定義されるので、
+ホストのログイン済み `gh` には影響しない。
+
+`~/.config/gh/hosts.yml` に永続化したい場合(= トークンが平文でディスクに残る)だけ、
+ホスト側で `DOTFILES_GH_LOGIN=1` を設定して `devcu` する。
 
 補足: dotfiles のインストールは `postCreateCommand` の**後**に走るため、`postCreateCommand` 内の
 git 操作にはまだ認証が効かない。

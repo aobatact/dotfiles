@@ -16,6 +16,26 @@ alias gc='git commit'
 alias gco='git checkout'
 alias gb='git branch'
 
+# devcontainer 内では GitHub のトークンをディスクに置かず credential cache
+# (メモリ常駐)にだけ持たせている。gh は GH_TOKEN を読むので、呼び出しのたびに
+# cache から取り出して渡す。config.auth があるとき = コンテナ側なので、ホストの
+# gh(ログイン済み)には影響しない。
+if [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/git/config.auth" ]; then
+  function gh() {
+    local token
+    # cache が空でも対話プロンプトに落ちないよう GIT_TERMINAL_PROMPT=0 で抑止する
+    token="$(printf 'protocol=https\nhost=github.com\n\n' |
+      GIT_TERMINAL_PROMPT=0 git credential fill 2>/dev/null |
+      sed -n 's/^password=//p')"
+    if [ -n "$token" ]; then
+      GH_TOKEN="$token" command gh "$@"
+    else
+      echo "gh: credential cache にトークンがありません(期限切れ?)。ホスト側で devcauth を実行してください。" >&2
+      command gh "$@"
+    fi
+  }
+fi
+
 # --- ファイル操作 ---
 alias ll='ls -alF'
 alias la='ls -A'

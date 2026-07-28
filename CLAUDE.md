@@ -70,11 +70,14 @@ source "${DOTFILES_DIR}/lib/common.sh"
   `devc/aliases` の `devcu` がホスト側の値を明示的に渡し、`git/install.sh` が受け取って設定する。
   - トークン(`GH_TOKEN`)は `--secrets-file`(一時ファイル)経由。`--remote-env` はホストの `ps` に見えるため使わない。
     CLI 内部で secrets は remoteEnv と合流して dotfiles install コマンドの env に入る(0.87.0 で確認)。
-  - 受け取り側は `~/.config/git/config.auth`(毎回生成し直す)と `credentials`(600)を作る。ホストは `GH_TOKEN` が
-    無いので何も生成されない = ホスト/コンテナで同じスクリプトが使える。
+  - 受け取り側は `~/.config/git/config.auth` を毎回生成し直し、トークン自体は `git credential approve` で
+    `credential.helper cache`(メモリ常駐デーモン)に載せる。**ディスクに書かない**のが方針。
+    ホストは `GH_TOKEN` が無いので何も生成されない = ホスト/コンテナで同じスクリプトが使える。
   - `config.auth` は `insteadOf` で ssh URL を HTTPS に書き換える。GitHub 以外はカバーしない。
-  - `gh` は環境変数 `GH_TOKEN` を優先し、その状態では `gh auth login` が認証を保存できない。
-    保存させるには `env -u GH_TOKEN -u GITHUB_TOKEN` を噛ませる(そうしないと install 後の対話シェルで gh が失認証になる)。
+  - コンテナ内の `gh` は `shell/aliases` のラッパーが cache から取ったトークンを `GH_TOKEN` で渡す。
+    ラッパーの有無は `config.auth` の存在で判定する(= コンテナ側だけで有効。ホストの gh は素のまま)。
+  - `gh auth login` は `hosts.yml` に平文で残るため既定では行わない。`DOTFILES_GH_LOGIN=1` のときだけ。
+    その際 `gh` は環境変数 `GH_TOKEN` を優先して認証を保存できないので `env -u GH_TOKEN -u GITHUB_TOKEN` を噛ませる。
 - **claude モジュール**: `claude/skills/<name>/` を足すだけで `~/.claude/skills/<name>` へ自動リンクされる(`install.sh` がループで拾う)。
 - 環境は **WSL2 + Windows 版 Zed** を主に想定。zed スクリプトは zenity → PowerShell → CLI の順でダイアログをフォールバックする。
 - **`zed/tasks.json` は install でリンクしない**。`scripts/*` はタスク実行時に WSL 側で走るため WSL へリンクするが、
