@@ -11,6 +11,14 @@ echo "git:"
 
 GIT_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/git"
 
+# ~/.config/git 自体がマウントされている場合、その実体はホスト側の設定なので触らない。
+# コンテナ内の絶対パスでリンクを張り替えるとホストのリンクが壊れ、さらに
+# トークン(credentials)や insteadOf の書き換えまでホスト側へ漏れてしまう。
+if is_mounted "$GIT_CONFIG_HOME"; then
+  echo "  [skip] $GIT_CONFIG_HOME はマウント済み(ホストと共有)のため何もしない"
+  exit 0
+fi
+
 # XDG準拠の配置先にリンク (~/.config/git/{config,ignore})
 link "${MODULE_DIR}/config" "${GIT_CONFIG_HOME}/config"
 link "${MODULE_DIR}/ignore" "${GIT_CONFIG_HOME}/ignore"

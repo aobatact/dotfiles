@@ -26,3 +26,23 @@ link() {
   ln -sfn "$src" "$dest"
   echo "  [link] $dest -> $src"
 }
+
+# 指定ディレクトリがマウントポイントかどうかを判定する。
+#   is_mounted <dir>
+#
+# devcontainer ではホストのディレクトリがそのまま bind mount されることがある
+# (例: devcontainer.json で ~/.claude をマウントする)。そこへリンクを張ると
+# コンテナ内の絶対パス(/home/<コンテナユーザー>/dotfiles/...)がホスト側に
+# 書き戻され、ホストのリンクが壊れる。そのため書き込み前にこれで判定する。
+#
+# /proc/self/mountinfo が読めない環境(非Linux等)では常に false を返す。
+is_mounted() {
+  local path="$1"
+
+  [ -d "$path" ] || return 1
+  [ -r /proc/self/mountinfo ] || return 1
+
+  # mountinfo の 5 列目がマウント先のパス。
+  # (ルール内の exit は END へ飛ぶため、フラグを立てて END で終了ステータスを決める)
+  awk -v p="$path" '$5 == p { found = 1 } END { exit !found }' /proc/self/mountinfo
+}

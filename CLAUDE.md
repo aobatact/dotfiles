@@ -20,13 +20,23 @@
 **devcontainer で使うツールか否か**が分離の基準。ホストでしか使わないもの(zed など)は
 `install-local.sh` 側にだけ足す。共通で使うものは `install-devcontainer.sh` に足す。
 
-### `link` ヘルパー (`lib/common.sh`)
+### `lib/common.sh` のヘルパー
 
-全 install スクリプトが使う唯一の共通関数。`link <src> <dest>` で:
+全 install スクリプトが使う共通関数。
+
+`link <src> <dest>`:
 
 - 既存が実体(非シンボリックリンク)なら `.bak` へ退避してから張る。
 - 既存がシンボリックリンクなら `ln -sfn` で上書き。
 - src が無ければ skip して return 1。
+
+`is_mounted <dir>`:
+
+- `/proc/self/mountinfo` の 5 列目(マウント先)と突き合わせてマウントポイントか判定する。
+- **用途**: devcontainer.json がホストの `~/.claude` 等をコンテナへ bind mount していると、
+  コンテナ内で `link` した結果(コンテナ内の絶対パスを指すシンボリックリンク)がホスト側に
+  書き戻され、ホストの設定が壊れる。`claude`・`git` の install はこの判定で**丸ごと skip** する。
+- awk のルール内 `exit` は END ブロックへ飛ぶため、フラグを立てて `END { exit !found }` で判定している。
 
 ### モジュール install の定型
 
