@@ -5,11 +5,44 @@
 # shell/aliases が末尾でsourceする。コンテナ内にはこのファイルが無いので読み込まれない。
 
 # --- devcontainer ---
+# devcontainer を起動する。dotfiles に加えて git の認証情報も渡す:
+#   - GH_TOKEN  : gh のトークン。--secrets-file 経由で渡してコマンドライン(ps)に出さない。
+#   - GIT_USER_EMAIL : ホストの user.email。コンテナ側の config.local に埋める。
+# 受け取り側は git/install.sh(dotfiles install 時に実行される)。
 function devcu() {
+  local secrets token email status
+  local -a opts=()
+
+  email="$(git config --get user.email 2>/dev/null)"
+  [ -n "$email" ] && opts+=(--remote-env "GIT_USER_EMAIL=${email}")
+
+  token="$(gh auth token 2>/dev/null)"
+  if [ -n "$token" ]; then
+    secrets="$(mktemp)"
+    chmod 600 "$secrets"
+    printf '{"GH_TOKEN":"%s"}\n' "$token" >"$secrets"
+    opts+=(--secrets-file "$secrets")
+  else
+    echo "devcu: gh のトークンを取得できません(gh auth login 済みか確認)。git 認証なしで起動します。" >&2
+  fi
+
   devcontainer up \
     --dotfiles-repository https://github.com/aobatact/dotfiles.git \
     --dotfiles-install-command install-devcontainer.sh \
+    "${opts[@]}" \
     "$@"
+  status=$?
+
+  [ -n "${secrets:-}" ] && rm -f "$secrets"
+  return $status
+}
+# 起動済みコンテナの git 認証を張り直す(トークン失効時や、後から gh でログインし直した時)。
+# exec には --secrets-file が無いため --remote-env で渡す(ホストの ps に一瞬トークンが見える)。
+function devcauth() {
+  local token
+  token="$(gh auth token 2>/dev/null)"
+  [ -z "$token" ] && { echo "devcauth: gh のトークンを取得できません" >&2; return 1; }
+  devcontainer exec --remote-env "GH_TOKEN=${token}" "$@" bash -c 'bash "$HOME/dotfiles/git/install.sh"'
 }
 function devce() {
   devcontainer exec "$@"

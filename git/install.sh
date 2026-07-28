@@ -27,7 +27,58 @@ LOCAL="${GIT_CONFIG_HOME}/config.local"
 if [ ! -e "$LOCAL" ]; then
   mkdir -p "$GIT_CONFIG_HOME"
   cp "${MODULE_DIR}/config.local.example" "$LOCAL"
-  echo "  [create] $LOCAL (雛形から生成。user.email等を編集してください)"
+  # devcontainer 起動時にホスト側の user.email が渡されていれば埋めておく(devcu が渡す)
+  if [ -n "${GIT_USER_EMAIL:-}" ]; then
+    printf '\n[user]\n\temail = %s\n' "$GIT_USER_EMAIL" >>"$LOCAL"
+    echo "  [create] $LOCAL (雛形から生成。user.email=${GIT_USER_EMAIL})"
+  else
+    echo "  [create] $LOCAL (雛形から生成。user.email等を編集してください)"
+  fi
 else
   echo "  [keep] $LOCAL (既存)"
+fi
+
+# --- GitHub の認証 (devcontainer 向け) ---
+# devcu が --secrets-file 経由で GH_TOKEN を渡してきた場合だけ、
+# HTTPS 用の credential とプロトコル書き換えを生成する。
+# ホストは ssh 鍵で認証するため GH_TOKEN を持たず、この節は skip される。
+TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+AUTH="${GIT_CONFIG_HOME}/config.auth"
+CRED="${GIT_CONFIG_HOME}/credentials"
+
+if [ -n "$TOKEN" ]; then
+  mkdir -p "$GIT_CONFIG_HOME"
+
+  # credential.helper store が読む形式。トークンを含むので 600 で作る。
+  (
+    umask 077
+    printf 'https://x-access-token:%s@github.com\n' "$TOKEN" >"$CRED"
+  )
+
+  # config.auth は毎回生成し直す(トークンの入れ替えに追従するため)。
+  cat >"$AUTH" <<EOF
+# GH_TOKEN から自動生成。手で編集しても install のたびに上書きされる。
+[credential "https://github.com"]
+	helper = "store --file=${CRED}"
+# ssh 形式のリモートURLでもトークン認証が効くように HTTPS へ書き換える。
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+	insteadOf = ssh://git@github.com/
+EOF
+  echo "  [create] $AUTH (GH_TOKEN から GitHub 認証を設定)"
+
+  # gh CLI があれば同じトークンでログインしておく(gh pr 等をコンテナ内で使うため)。
+  # gh は GH_TOKEN 環境変数を優先し、その状態では認証情報を保存できないので env から外して実行する。
+  # (保存しておかないと install 後の対話シェルで gh が認証を失う)
+  if command -v gh >/dev/null 2>&1; then
+    if env -u GH_TOKEN -u GITHUB_TOKEN gh auth status >/dev/null 2>&1; then
+      echo "  [keep] gh (ログイン済み)"
+    elif printf '%s\n' "$TOKEN" | env -u GH_TOKEN -u GITHUB_TOKEN gh auth login --with-token >/dev/null 2>&1; then
+      echo "  [login] gh (GH_TOKEN でログイン)"
+    else
+      echo "  [warn] gh へのログインに失敗しました" >&2
+    fi
+  fi
+else
+  echo "  [skip] GH_TOKEN が無いため GitHub 認証は設定しない"
 fi

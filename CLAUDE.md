@@ -13,8 +13,8 @@
 
 セットアップは 2 層のエントリポイントとモジュール単位の install から成る。
 
-- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `devc`・`git`・`zed` を追加。
-- `install-devcontainer.sh` (共通) → `tmux`・`shell`・`claude` の install を順に呼ぶ。devcontainer 機能からも起動される。
+- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `devc`・`zed` を追加。
+- `install-devcontainer.sh` (共通) → `tmux`・`shell`・`claude`・`git` の install を順に呼ぶ。devcontainer 機能からも起動される。
 - `<module>/install.sh` → `lib/common.sh` を source し、`link` 関数でシンボリックリンクを張る。
 
 **devcontainer で使うツールか否か**が分離の基準。ホストでしか使わないもの(zed など)は
@@ -56,6 +56,15 @@ source "${DOTFILES_DIR}/lib/common.sh"
   プロセスにしか効かないので、コンテナ内の設定で代替はできない。
   なお `claude/settings.json` の herdr フックは `herdr integration install claude` が直接書き換えにくる
   (`~/.claude/settings.json` がこのリポジトリへのシンボリックリンクのため)。絶対パスに戻されていないか差分で確認すること。
+- **devcontainer への認証の渡し方**: `devcontainer` CLI は VS Code 拡張と違って認証を自動転送しないため、
+  `devc/aliases` の `devcu` がホスト側の値を明示的に渡し、`git/install.sh` が受け取って設定する。
+  - トークン(`GH_TOKEN`)は `--secrets-file`(一時ファイル)経由。`--remote-env` はホストの `ps` に見えるため使わない。
+    CLI 内部で secrets は remoteEnv と合流して dotfiles install コマンドの env に入る(0.87.0 で確認)。
+  - 受け取り側は `~/.config/git/config.auth`(毎回生成し直す)と `credentials`(600)を作る。ホストは `GH_TOKEN` が
+    無いので何も生成されない = ホスト/コンテナで同じスクリプトが使える。
+  - `config.auth` は `insteadOf` で ssh URL を HTTPS に書き換える。GitHub 以外はカバーしない。
+  - `gh` は環境変数 `GH_TOKEN` を優先し、その状態では `gh auth login` が認証を保存できない。
+    保存させるには `env -u GH_TOKEN -u GITHUB_TOKEN` を噛ませる(そうしないと install 後の対話シェルで gh が失認証になる)。
 - **claude モジュール**: `claude/skills/<name>/` を足すだけで `~/.claude/skills/<name>` へ自動リンクされる(`install.sh` がループで拾う)。
 - 環境は **WSL2 + Windows 版 Zed** を主に想定。zed スクリプトは zenity → PowerShell → CLI の順でダイアログをフォールバックする。
 - **`zed/tasks.json` は install でリンクしない**。`scripts/*` はタスク実行時に WSL 側で走るため WSL へリンクするが、
