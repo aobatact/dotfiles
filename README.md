@@ -37,8 +37,12 @@ devcontainer 越しだと `devcontainer exec` しか見えず Claude Code だと
 
 ```sh
 devcc          # = HERDR_AGENT=claude devcontainer exec claude
+devcf          # = HERDR_AGENT=codex devcontainer exec codex-fugu
 devca codex    # 他のエージェントはこちら
 ```
+
+ヒントに渡せるのは herdr の manifest にある agent id だけで、未知の値だと `unknown_agent` に落ちて画面判定が丸ごと効かなくなる。
+`codex-fugu` のようにコマンド名と id が食い違うラッパーは、`devca` 内の `case` で id へ読み替えている。
 
 ヒントは**ホスト側**のフォアグラウンドプロセスにしか効かない(コンテナ内で設定しても herdr からは見えない)。
 判定結果は `herdr agent explain <pane>` で確認できる。
