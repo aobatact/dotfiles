@@ -14,6 +14,10 @@
 	upd = pull -r origin main
 	s = status -sb
 # マシン固有の設定(user.email / credential / safe.directory 等)はローカルファイルから読む。
-# このファイルは git 管理外 (install-local.sh が雛形から生成)。
+# このファイルは git 管理外 (git/install.sh が雛形から生成)。
 [include]
 	path = ~/.config/git/config.local
+# devcontainer 内での GitHub 認証設定。ホストから渡された GH_TOKEN を元に
+# git/install.sh が自動生成する(ホストでは生成されない)。無ければ黙って無視される。
+[include]
+	path = ~/.config/git/config.auth

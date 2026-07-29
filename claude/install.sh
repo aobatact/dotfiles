@@ -11,6 +11,14 @@ echo "claude:"
 
 CLAUDE_DIR="$HOME/.claude"
 
+# ~/.claude 自体がマウントされている場合、その実体はホスト側のディレクトリなので触らない。
+# ここでリンクを張るとコンテナ内の絶対パスがホストの ~/.claude に書き戻され、
+# ホスト側の設定・skills のリンクが全部壊れる。
+if is_mounted "$CLAUDE_DIR"; then
+  echo "  [skip] $CLAUDE_DIR はマウント済み(ホストと共有)のためリンクしない"
+  exit 0
+fi
+
 # 全体設定をリンク (~/.claude/settings.json)
 link "${MODULE_DIR}/settings.json" "${CLAUDE_DIR}/settings.json"
 

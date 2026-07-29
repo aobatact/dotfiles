@@ -13,20 +13,30 @@
 
 セットアップは 2 層のエントリポイントとモジュール単位の install から成る。
 
-- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `devc`・`git`・`zed` を追加。
-- `install-devcontainer.sh` (共通) → `tmux`・`shell`・`claude` の install を順に呼ぶ。devcontainer 機能からも起動される。
+- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `devc`・`zed` を追加。
+- `install-devcontainer.sh` (共通) → `tmux`・`shell`・`claude`・`git` の install を順に呼ぶ。devcontainer 機能からも起動される。
 - `<module>/install.sh` → `lib/common.sh` を source し、`link` 関数でシンボリックリンクを張る。
 
 **devcontainer で使うツールか否か**が分離の基準。ホストでしか使わないもの(zed など)は
 `install-local.sh` 側にだけ足す。共通で使うものは `install-devcontainer.sh` に足す。
 
-### `link` ヘルパー (`lib/common.sh`)
+### `lib/common.sh` のヘルパー
 
-全 install スクリプトが使う唯一の共通関数。`link <src> <dest>` で:
+全 install スクリプトが使う共通関数。
+
+`link <src> <dest>`:
 
 - 既存が実体(非シンボリックリンク)なら `.bak` へ退避してから張る。
 - 既存がシンボリックリンクなら `ln -sfn` で上書き。
 - src が無ければ skip して return 1。
+
+`is_mounted <dir>`:
+
+- `/proc/self/mountinfo` の 5 列目(マウント先)と突き合わせてマウントポイントか判定する。
+- **用途**: devcontainer.json がホストの `~/.claude` 等をコンテナへ bind mount していると、
+  コンテナ内で `link` した結果(コンテナ内の絶対パスを指すシンボリックリンク)がホスト側に
+  書き戻され、ホストの設定が壊れる。`claude`・`git` の install はこの判定で**丸ごと skip** する。
+- awk のルール内 `exit` は END ブロックへ飛ぶため、フラグを立てて `END { exit !found }` で判定している。
 
 ### モジュール install の定型
 
@@ -56,6 +66,18 @@ source "${DOTFILES_DIR}/lib/common.sh"
   プロセスにしか効かないので、コンテナ内の設定で代替はできない。
   なお `claude/settings.json` の herdr フックは `herdr integration install claude` が直接書き換えにくる
   (`~/.claude/settings.json` がこのリポジトリへのシンボリックリンクのため)。絶対パスに戻されていないか差分で確認すること。
+- **devcontainer への認証の渡し方**: `devcontainer` CLI は VS Code 拡張と違って認証を自動転送しないため、
+  `devc/aliases` の `devcu` がホスト側の値を明示的に渡し、`git/install.sh` が受け取って設定する。
+  - トークン(`GH_TOKEN`)は `--secrets-file`(一時ファイル)経由。`--remote-env` はホストの `ps` に見えるため使わない。
+    CLI 内部で secrets は remoteEnv と合流して dotfiles install コマンドの env に入る(0.87.0 で確認)。
+  - 受け取り側は `~/.config/git/config.auth` を毎回生成し直し、トークン自体は `git credential approve` で
+    `credential.helper cache`(メモリ常駐デーモン)に載せる。**ディスクに書かない**のが方針。
+    ホストは `GH_TOKEN` が無いので何も生成されない = ホスト/コンテナで同じスクリプトが使える。
+  - `config.auth` は `insteadOf` で ssh URL を HTTPS に書き換える。GitHub 以外はカバーしない。
+  - コンテナ内の `gh` は `shell/aliases` のラッパーが cache から取ったトークンを `GH_TOKEN` で渡す。
+    ラッパーの有無は `config.auth` の存在で判定する(= コンテナ側だけで有効。ホストの gh は素のまま)。
+  - `gh auth login` は `hosts.yml` に平文で残るため既定では行わない。`DOTFILES_GH_LOGIN=1` のときだけ。
+    その際 `gh` は環境変数 `GH_TOKEN` を優先して認証を保存できないので `env -u GH_TOKEN -u GITHUB_TOKEN` を噛ませる。
 - **claude モジュール**: `claude/skills/<name>/` を足すだけで `~/.claude/skills/<name>` へ自動リンクされる(`install.sh` がループで拾う)。
 - 環境は **WSL2 + Windows 版 Zed** を主に想定。zed スクリプトは zenity → PowerShell → CLI の順でダイアログをフォールバックする。
 - **`zed/tasks.json` は install でリンクしない**。`scripts/*` はタスク実行時に WSL 側で走るため WSL へリンクするが、
