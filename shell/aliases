@@ -3,8 +3,9 @@
 # Ubuntu標準の ~/.bashrc が ~/.bash_aliases を自動でsourceするため、
 # このファイルを ~/.bash_aliases にリンクするだけで読み込まれる。
 #
-# マシン固有のエイリアスはここには書かず、末尾でsourceする
-# aliases.local (雛形から生成・gitには含めない) に記述する。
+# ホストでしか使わないエイリアス(devcontainer操作など)は devc/aliases に置き、
+# マシン固有のエイリアスは aliases.local (雛形から生成・gitには含めない) に書く。
+# どちらもこのファイルの末尾でsourceする。
 
 # --- git ---
 alias g='git'
@@ -22,28 +23,12 @@ alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
 
-# --- devcontainer ---
-function devcu() {
-  devcontainer up \
-    --dotfiles-repository https://github.com/aobatact/dotfiles.git \
-    --dotfiles-install-command install-devcontainer.sh \
-    $*
-}
-function devce() {
-  devcontainer exec $*
-}
-function devcs() {
-  local ids
-  ids=$(docker ps -q --filter "label=devcontainer.local_folder=$(pwd)")
-  [ -z "$ids" ] && { echo "停止対象の devcontainer がありません"; return 0; }
-  docker stop $ids
-}
-function devcd() {
-  local ids
-  ids=$(docker ps -q -a --filter "label=devcontainer.local_folder=$(pwd)")
-  [ -z "$ids" ] && { echo "停止対象の devcontainer がありません"; return 0; }
-  docker rm -f $ids
-}
+# --- ホスト専用エイリアスを読み込む(あれば) ---
+# devc/install.sh が ~/.config/shell/aliases.host としてリンクする。
+# devcontainer内では install-local.sh を通らないので存在せず、読み込まれない。
+_aliases_host="${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliases.host"
+[ -f "$_aliases_host" ] && . "$_aliases_host"
+unset _aliases_host
 
 # --- マシン固有エイリアスを読み込む(あれば) ---
 _aliases_local="${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliases.local"
