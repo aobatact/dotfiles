@@ -22,26 +22,45 @@ cd ~/works/dotfiles
 devcontainer の [dotfiles 機能](https://containers.dev/implementors/features/#dotfiles)から
 `install-devcontainer.sh` を実行させる。tmux / shell / claude だけをセットアップする。
 
-`shell/aliases` の `devcu` 関数を使うと、この dotfiles を渡した状態で devcontainer を起動できる。
+`devc/aliases` の `devcu` 関数を使うと、この dotfiles を渡した状態で devcontainer を起動できる。
 
 ```sh
 devcu   # = devcontainer up --dotfiles-repository ... --dotfiles-install-command install-devcontainer.sh
 ```
 
+### devcontainer 内のエージェントを herdr に検知させる
+
+[herdr](https://herdr.dev) はペインのフォアグラウンドプロセスからエージェント種別を判定するが、
+devcontainer 越しだと `devcontainer exec` しか見えず Claude Code だと分からない。
+`devca` / `devcc` は `HERDR_AGENT` でヒントを与えてから `devcontainer exec` するので、
+既存の画面判定ルールが適用され idle / working / blocked が表示されるようになる。
+
+```sh
+devcc          # = HERDR_AGENT=claude devcontainer exec claude
+devca codex    # 他のエージェントはこちら
+```
+
+ヒントは**ホスト側**のフォアグラウンドプロセスにしか効かない(コンテナ内で設定しても herdr からは見えない)。
+判定結果は `herdr agent explain <pane>` で確認できる。
+
+セッション復元まで欲しい場合は herdr のソケットを bind mount してコンテナ内にも herdr を入れる必要があるが、
+得られるのが復元だけなので現状は対応していない。
+
 ## 構成
 
 | ディレクトリ | 内容 | リンク先 |
 | --- | --- | --- |
-| `shell/` | 共有エイリアス・devcontainer ヘルパー関数 | `~/.bash_aliases` |
+| `shell/` | 共有エイリアス | `~/.bash_aliases` |
 | `tmux/` | tmux 設定 | `~/.config/tmux/tmux.conf`, `~/.tmux.conf` |
 | `claude/` | Claude Code の全体設定と skills | `~/.claude/settings.json`, `~/.claude/skills/*` |
+| `devc/` | devcontainer ヘルパー関数(ホスト専用) | `~/.config/shell/aliases.host` |
 | `git/` | git 設定・グローバル gitignore(ホスト専用) | `~/.config/git/{config,ignore}` |
 | `zed/` | Zed 用の git 操作スクリプト(ホスト専用) | `~/.config/zed/scripts` |
 | `lib/` | 各 install スクリプトが source する共通ヘルパー | — |
 
 ### エントリポイント
 
-- `install-local.sh` — ホスト用フルセットアップ。`install-devcontainer.sh` + git + zed。
+- `install-local.sh` — ホスト用フルセットアップ。`install-devcontainer.sh` + devc + git + zed。
 - `install-devcontainer.sh` — 共通エントリ。tmux / shell / claude をセットアップ。devcontainer からも実行される。
 - `<module>/install.sh` — 各モジュールのセットアップ。`lib/common.sh` の `link` を使ってリンクを張る。
 
@@ -56,6 +75,9 @@ git 管理に含めたくないマシン固有の設定は、雛形(`*.example`)
 | `~/.config/shell/aliases.local` | `shell/aliases.local.example` | マシン固有のエイリアス |
 
 `git/config` は末尾で `config.local` を `[include]` し、`shell/aliases` は末尾で `aliases.local` を source する。
+
+なお `shell/aliases` は `aliases.local` の前に `~/.config/shell/aliases.host`(`devc/aliases` へのリンク)も source する。
+これは雛形方式ではなくホスト専用モジュールの分離で、devcontainer 内では `install-local.sh` を通らないので存在せず読み込まれない。
 
 ## Zed のタスク定義について
 

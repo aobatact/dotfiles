@@ -13,7 +13,7 @@
 
 セットアップは 2 層のエントリポイントとモジュール単位の install から成る。
 
-- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `git`・`zed` を追加。
+- `install-local.sh` (ホスト用フル) → `install-devcontainer.sh` を呼び、さらに `devc`・`git`・`zed` を追加。
 - `install-devcontainer.sh` (共通) → `tmux`・`shell`・`claude` の install を順に呼ぶ。devcontainer 機能からも起動される。
 - `<module>/install.sh` → `lib/common.sh` を source し、`link` 関数でシンボリックリンクを張る。
 
@@ -48,6 +48,14 @@ source "${DOTFILES_DIR}/lib/common.sh"
   `*.example` からローカルファイルを生成して分離する。install スクリプトは既存のローカルファイルを**上書きしない**。
   - git: `git/config` が `~/.config/git/config.local` を `[include]`。
   - shell: `shell/aliases` が末尾で `~/.config/shell/aliases.local` を source。
+- **ホスト専用のエイリアスは `devc/` のように別モジュールへ分ける**。`shell/aliases` は共通(devcontainer 内にもリンクされる)なので、
+  ホストでしか動かない関数を直接書かない。`devc/install.sh` が `~/.config/shell/aliases.host` へリンクし、`shell/aliases` が
+  `aliases.local` より前で source する。コンテナ内は `install-local.sh` を通らないので、このファイルが存在せず読み込まれない。
+- **herdr 連携**: devcontainer 内のエージェントは、ホストから見ると `devcontainer exec` にしか見えず種別判定が外れる。
+  `devc/aliases` の `devca`/`devcc` が `HERDR_AGENT` でヒントを与えて解決している。ヒントはホスト側のフォアグラウンド
+  プロセスにしか効かないので、コンテナ内の設定で代替はできない。
+  なお `claude/settings.json` の herdr フックは `herdr integration install claude` が直接書き換えにくる
+  (`~/.claude/settings.json` がこのリポジトリへのシンボリックリンクのため)。絶対パスに戻されていないか差分で確認すること。
 - **claude モジュール**: `claude/skills/<name>/` を足すだけで `~/.claude/skills/<name>` へ自動リンクされる(`install.sh` がループで拾う)。
 - 環境は **WSL2 + Windows 版 Zed** を主に想定。zed スクリプトは zenity → PowerShell → CLI の順でダイアログをフォールバックする。
 - **`zed/tasks.json` は install でリンクしない**。`scripts/*` はタスク実行時に WSL 側で走るため WSL へリンクするが、

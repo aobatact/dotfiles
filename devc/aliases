@@ -1,0 +1,50 @@
+# shellcheck shell=bash
+# devcontainerを操作するためのホスト専用エイリアス。コンテナ内では使わない。
+#
+# devc/install.sh が ~/.config/shell/aliases.host としてリンクし、
+# shell/aliases が末尾でsourceする。コンテナ内にはこのファイルが無いので読み込まれない。
+
+# --- devcontainer ---
+function devcu() {
+  devcontainer up \
+    --dotfiles-repository https://github.com/aobatact/dotfiles.git \
+    --dotfiles-install-command install-devcontainer.sh \
+    "$@"
+}
+function devce() {
+  devcontainer exec "$@"
+}
+function devcs() {
+  local ids
+  ids=$(docker ps -q --filter "label=devcontainer.local_folder=$(pwd)")
+  [ -z "$ids" ] && { echo "停止対象の devcontainer がありません"; return 0; }
+  docker stop $ids
+}
+function devcd() {
+  local ids
+  ids=$(docker ps -q -a --filter "label=devcontainer.local_folder=$(pwd)")
+  [ -z "$ids" ] && { echo "停止対象の devcontainer がありません"; return 0; }
+  docker rm -f $ids
+}
+
+# --- herdr: コンテナ内のエージェントをホスト側herdrに検知させる ---
+# herdrはペインのフォアグラウンドプロセスからエージェント種別を判定するが、
+# devcontainer越しだと `devcontainer exec` しか見えずclaudeだと分からない。
+# HERDR_AGENT でヒントを与えると既存の画面判定ルール(manifest)が適用され、
+# idle/working/blocked の判定が動く。画面出力自体はdocker exec越しでもそのまま流れる。
+#
+# ヒントはそのフォアグラウンドプロセスにスコープされるため、
+# コンテナ内で設定しても herdr からは見えない。必ずホスト側で付ける。
+# 判定結果は `herdr agent explain <pane>` で確認できる。
+function devca() {
+  if [ $# -eq 0 ]; then
+    echo "usage: devca <agent> [args...]   例: devca claude / devca codex" >&2
+    return 1
+  fi
+  local agent="$1"
+  shift
+  HERDR_AGENT="$agent" devcontainer exec "$agent" "$@"
+}
+function devcc() {
+  devca claude "$@"
+}
