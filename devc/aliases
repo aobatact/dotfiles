@@ -72,15 +72,27 @@ function devcd() {
 # ヒントはそのフォアグラウンドプロセスにスコープされるため、
 # コンテナ内で設定しても herdr からは見えない。必ずホスト側で付ける。
 # 判定結果は `herdr agent explain <pane>` で確認できる。
+#
+# ヒントに渡せるのは manifest にある agent id だけ。未知の値を渡すと unknown_agent に落ちて
+# 画面判定が丸ごと効かなくなる(`herdr agent explain --file <画面> --agent <id>` で確認できる)。
+# codex-fugu のようなラッパーはコマンド名と id が食い違うので、caseで id へ読み替える。
 function devca() {
   if [ $# -eq 0 ]; then
-    echo "usage: devca <agent> [args...]   例: devca claude / devca codex" >&2
+    echo "usage: devca <agent> [args...]   例: devca claude / devca codex / devca codex-fugu" >&2
     return 1
   fi
   local agent="$1"
   shift
-  HERDR_AGENT="$agent" devcontainer exec "$agent" "$@"
+  # 既定はコマンド名をそのままidとして使い、食い違うものだけここで読み替える
+  local hint="$agent"
+  case "$agent" in
+    codex-fugu) hint=codex ;;  # 実体は `codex -p fugu` をexecするラッパーなので画面は素のcodexと同じ
+  esac
+  HERDR_AGENT="$hint" devcontainer exec "$agent" "$@"
 }
 function devcc() {
   devca claude "$@"
+}
+function devcf() {
+  devca codex-fugu "$@"
 }
