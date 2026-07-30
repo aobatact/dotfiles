@@ -7,7 +7,10 @@
 [init]
 	defaultBranch = main
 [alias]
-	delete-merged-branch = "!f () { git fetch -p ; git branch --merged | rg -v '(\\*.*|.*(main|release|develop|no_delete).*)' | xargs -r git branch -d; };f"
+	# worktree に checkout 済みのブランチは削除できないため、%(worktreepath) が
+	# 空のものだけを候補にする(カレントブランチもこれで除外される)。
+	# --merged は省略可能な引数を取るので --format より後ろに置くこと。
+	delete-merged-branch = "!f () { git fetch -p ; git branch --format='%(if)%(worktreepath)%(then)%(else)%(refname:short)%(end)' --merged | rg -v '(main|release|develop|no_delete)' | xargs -r git branch -d; };f"
 	l = log --graph --decorate --pretty=oneline --abbrev-commit -10
 	ll = log --graph --decorate --date=format-local:'%Y/%m/%d %H:%M' --pretty=format:'%x09%Cgreen[%cd]%Cred | %C(cyan)%an%Creset %C(yellow)%h%C(auto)%d%Creset %s' --date-order -10
 	fd = !git branch | fzf | xargs git checkout
