@@ -90,7 +90,7 @@ git 操作にはまだ認証が効かない。
 | --- | --- | --- |
 | `shell/` | 共有エイリアス | `~/.bash_aliases` |
 | `tmux/` | tmux 設定 | `~/.config/tmux/tmux.conf`, `~/.tmux.conf` |
-| `claude/` | Claude Code の全体設定と skills | `~/.claude/settings.json`, `~/.claude/skills/*` |
+| `claude/` | Claude Code の全体設定・ステータス行・skills | `~/.claude/{settings.json,statusline.sh}`, `~/.claude/skills/*` |
 | `devc/` | devcontainer ヘルパー関数(ホスト専用) | `~/.config/shell/aliases.host` |
 | `git/` | git 設定・グローバル gitignore・devcontainer 向け認証設定 | `~/.config/git/{config,ignore}` |
 | `zed/` | Zed 用の git 操作スクリプト(ホスト専用) | `~/.config/zed/scripts` |
@@ -149,4 +149,33 @@ claude:
   [skip] /home/devcontainer/.claude はマウント済み(ホストと共有)のためリンクしない
 ```
 
-この場合コンテナ内の設定はホスト側の実体をそのまま使うことになる(= コンテナ側で別途リンクする必要はない)。
+この場合、コンテナ内の設定はマウントされたホスト側のディレクトリをそのまま使う。ただし**ファイル単位ではそうならないことがある**(次節)。
+
+## devcontainer 内の Claude Code のステータス行
+
+`~/.claude` をマウントするコンテナでは、このリポジトリの `claude/settings.json` は**何をしても効かない**。
+
+- `~/.claude/settings.json` はホスト側で張ったシンボリックリンクで、リンク先(ホストの絶対パス)が
+  コンテナ内に存在しないため壊れている。
+- さらに devcontainer.json がプロジェクトの設定ファイルを `~/.claude/settings.json` へ重ねてマウントしている場合、
+  docker が**そのシンボリックリンクを解決してリンク先のパスの上にマウントする**。結果、コンテナ内では
+  `/home/<ホストユーザー>/works/dotfiles/claude/settings.json` という(コンテナには本来無い)パスが生え、
+  中身がプロジェクトの設定に置き換わる。
+
+そこで `claude/install.sh` は、マウント検出で skip するときに `statusLine` **だけ**を設定階層の最上位へ置く:
+
+```
+/etc/claude-code/managed-settings.d/50-dotfiles-statusline.json
+```
+
+Claude Code の設定は `userSettings < projectSettings < localSettings < flagSettings < policySettings` の順に
+マージされ、`managed-settings.d/*.json` はファイル名の昇順でディープマージされる。1 キーしか置かないので
+他の管理者設定とは衝突しない。sudo が使えない環境ではメッセージを出して skip する。
+
+副作用として、コンテナ内の Claude Code は「管理者設定あり」の状態になる。
+
+### ステータス行の中身
+
+表示は `claude/statusline.sh` が組み立てる(`<モデル名> | Context: <n>% used | 5h: <n>%`)。
+devcontainer には `jq` が入っていないことがあるため、`grep`/`sed` だけで解析している。
+ホストでは `~/.claude/statusline.sh` へリンクされ、`settings.json` の `statusLine` から呼ばれる。
