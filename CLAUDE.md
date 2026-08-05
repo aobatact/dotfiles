@@ -79,6 +79,15 @@ source "${DOTFILES_DIR}/lib/common.sh"
   - `gh auth login` は `hosts.yml` に平文で残るため既定では行わない。`DOTFILES_GH_LOGIN=1` のときだけ。
     その際 `gh` は環境変数 `GH_TOKEN` を優先して認証を保存できないので `env -u GH_TOKEN -u GITHUB_TOKEN` を噛ませる。
 - **claude モジュール**: `claude/skills/<name>/` を足すだけで `~/.claude/skills/<name>` へ自動リンクされる(`install.sh` がループで拾う)。
+- **devcontainer 内の statusLine**: `~/.claude` をマウントするコンテナでは `claude/settings.json` は効かない。
+  `~/.claude/settings.json` はホストの絶対パスを指すリンクなのでコンテナ内では壊れており、さらに devcontainer.json が
+  プロジェクトの設定を重ねてマウントしていると、**docker がそのリンクを解決してリンク先パスの上にマウントする**ため
+  中身がプロジェクトの設定に置き換わる。そのため `claude/install.sh` はマウント検出の skip 時に `statusLine` だけを
+  `/etc/claude-code/managed-settings.d/50-dotfiles-statusline.json` へ置く(policy tier が最上位。`managed-settings.d/*.json` は
+  ファイル名昇順でディープマージ)。ホストの `/etc` を触らないよう `/.dockerenv` の有無と `sudo -n` を確認してから書く。
+  表示ロジックは `claude/statusline.sh` に集約し、**`jq` に依存しない**(devcontainer に無いことがある)。
+  値が `null` のフィールドがある(セッション開始直後の `context_window.used_percentage` など)ので、
+  パースは必ず「キー直後の値だけ」を見ること。範囲を広げると `rate_limits` 側の数値を誤って拾う。
 - 環境は **WSL2 + Windows 版 Zed** を主に想定。zed スクリプトは zenity → PowerShell → CLI の順でダイアログをフォールバックする。
 - **`zed/tasks.json` は install でリンクしない**。`scripts/*` はタスク実行時に WSL 側で走るため WSL へリンクするが、
   `tasks.json` は Zed のグローバル設定で Windows 版 Zed では実体が Windows 側(`%APPDATA%\Zed`)にあり、WSL 側に置いても読まれず
