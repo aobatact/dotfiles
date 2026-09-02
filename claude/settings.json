@@ -1,5 +1,25 @@
 {
-  "alwaysThinkingEnabled": true,
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "h=\"$HOME/.claude/hooks/herdr-agent-state.sh\"; [ -f \"$h\" ] || exit 0; exec bash \"$h\" session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline.sh\""
+  },
   "enabledPlugins": {
     "chrome-devtools-mcp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
@@ -7,44 +27,25 @@
     "playwright@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
     "techblog-checker@uv-techblog-skills": true,
     "techblog-writer@uv-techblog-skills": true
-  },
-  "env": {
-    "DISABLE_AUTOUPDATER": "1"
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
       "source": {
-        "repo": "anthropics/skills",
-        "source": "github"
+        "source": "github",
+        "repo": "anthropics/skills"
       }
     },
     "uv-techblog-skills": {
       "source": {
-        "repo": "UniqueVision/wg_learning.techblog-skills",
-        "source": "github"
+        "source": "github",
+        "repo": "UniqueVision/wg_learning.techblog-skills"
       }
     }
   },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "h=\"$HOME/.claude/hooks/herdr-agent-state.sh\"; [ -f \"$h\" ] || exit 0; exec bash \"$h\" session",
-            "timeout": 10,
-            "type": "command"
-          }
-        ],
-        "matcher": "*"
-      }
-    ]
-  },
-  "statusLine": {
-    "command": "bash \"$HOME/.claude/statusline.sh\"",
-    "type": "command"
-  },
-  "tui": "fullscreen"
+  "alwaysThinkingEnabled": true,
+  "tui": "fullscreen",
+  "agentPushNotifEnabled": true,
+  "inputNeededNotifEnabled": true
 }
