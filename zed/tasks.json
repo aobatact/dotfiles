@@ -42,6 +42,11 @@
     "tags": ["git-command"]
   },
   {
+    "label": "Branch: Push $ZED_GIT_REF -> origin (--force-with-lease)",
+    "command": "git push --force-with-lease origin $ZED_GIT_REF",
+    "tags": ["git-command"]
+  },
+  {
     "label": "Branch: Pull origin/$ZED_GIT_REF",
     "command": "git pull origin $ZED_GIT_REF",
     "tags": ["git-command"]
